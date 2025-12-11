@@ -21,7 +21,6 @@ function populateCategories() {
   const categoryFilter = document.getElementById("categoryFilter");
   const lastCategory = localStorage.getItem("lastCategory") || "all";
 
-  // Clear previous options except "All Categories"
   categoryFilter.innerHTML = '<option value="all">All Categories</option>';
 
   const categories = [...new Set(quotes.map(q => q.category))];
@@ -52,8 +51,6 @@ function filterQuotes() {
   const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
   const quote = filteredQuotes[randomIndex];
   quoteDisplay.textContent = `"${quote.text}" — ${quote.category}`;
-
-  sessionStorage.setItem("lastQuote", JSON.stringify(quote));
 }
 
 // Add new quote
@@ -71,12 +68,9 @@ function addQuote() {
 
   quotes.push({ text: newText, category: newCategory });
   saveQuotes();
-
-  populateCategories(); // تحديث dropdown
-
+  populateCategories();
   textInput.value = "";
   categoryInput.value = "";
-
   alert("Quote added successfully!");
 }
 
@@ -110,11 +104,59 @@ function importFromJsonFile(event) {
   fileReader.readAsText(file);
 }
 
+// --- Simulated Server Sync and Conflict Resolution ---
+
+async function fetchServerQuotes() {
+  try {
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=5');
+    const serverQuotes = await response.json();
+
+    const formattedQuotes = serverQuotes.map(q => ({
+      text: q.title,
+      category: 'Server'
+    }));
+
+    // Conflict resolution: server takes precedence
+    let updated = false;
+    formattedQuotes.forEach(sq => {
+      const exists = quotes.find(q => q.text === sq.text);
+      if (!exists) {
+        quotes.push(sq);
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      saveQuotes();
+      populateCategories();
+      filterQuotes();
+      notifyUser("Quotes synced from server!");
+    }
+
+  } catch (error) {
+    console.error("Error fetching server quotes:", error);
+  }
+}
+
+// Notification
+function notifyUser(message) {
+  const notification = document.createElement('div');
+  notification.textContent = message;
+  notification.style.background = "#fffa65";
+  notification.style.padding = "10px";
+  notification.style.margin = "10px 0";
+  document.body.prepend(notification);
+  setTimeout(() => notification.remove(), 3000);
+}
+
 // Event listeners
 newQuoteBtn.addEventListener("click", filterQuotes);
 addQuoteBtn.addEventListener("click", addQuote);
 exportBtn.addEventListener("click", exportQuotes);
 
-// Initialize
+// Initial population
 populateCategories();
 filterQuotes();
+
+// Periodic server sync every 30 seconds
+setInterval(fetchServerQuotes, 30000);
