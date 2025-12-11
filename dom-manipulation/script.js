@@ -104,37 +104,38 @@ function importFromJsonFile(event) {
   fileReader.readAsText(file);
 }
 
-// --- Simulated Server Sync and Conflict Resolution ---
+// --- Server Sync & Conflict Resolution (ALX function names) ---
 
-async function fetchServerQuotes() {
+async function fetchQuotesFromServer() {
   try {
     const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=5');
     const serverQuotes = await response.json();
 
-    const formattedQuotes = serverQuotes.map(q => ({
-      text: q.title,
-      category: 'Server'
-    }));
-
-    // Conflict resolution: server takes precedence
-    let updated = false;
-    formattedQuotes.forEach(sq => {
-      const exists = quotes.find(q => q.text === sq.text);
-      if (!exists) {
-        quotes.push(sq);
-        updated = true;
-      }
-    });
-
-    if (updated) {
-      saveQuotes();
-      populateCategories();
-      filterQuotes();
-      notifyUser("Quotes synced from server!");
-    }
+    return serverQuotes.map(q => ({ text: q.title, category: 'Server' }));
 
   } catch (error) {
     console.error("Error fetching server quotes:", error);
+    return [];
+  }
+}
+
+async function syncQuotes() {
+  const serverQuotes = await fetchQuotesFromServer();
+  let updated = false;
+
+  serverQuotes.forEach(sq => {
+    const exists = quotes.find(q => q.text === sq.text);
+    if (!exists) {
+      quotes.push(sq);
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    saveQuotes();
+    populateCategories();
+    filterQuotes();
+    notifyUser("Quotes synced from server!");
   }
 }
 
@@ -159,4 +160,4 @@ populateCategories();
 filterQuotes();
 
 // Periodic server sync every 30 seconds
-setInterval(fetchServerQuotes, 30000);
+setInterval(syncQuotes, 30000);
