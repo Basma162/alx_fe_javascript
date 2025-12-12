@@ -9,6 +9,7 @@ function saveQuotes() {
 }
 
 const quoteDisplay = document.getElementById("quoteDisplay");
+
 document.getElementById("newQuoteBtn").addEventListener("click", () => {
   const r = Math.floor(Math.random() * quotes.length);
   const q = quotes[r];
@@ -46,3 +47,33 @@ function importFromJsonFile(event) {
   };
   fileReader.readAsText(event.target.files[0]);
 }
+
+function fetchQuotesFromServer() {
+  return fetch("https://jsonplaceholder.typicode.com/posts")
+    .then(response => response.json())
+    .then(data => {
+      return data.slice(0, 5).map(item => ({ text: item.title, category: "server" }));
+    });
+}
+
+function postQuoteToServer(quote) {
+  return fetch("https://jsonplaceholder.typicode.com/posts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(quote)
+  }).then(response => response.json());
+}
+
+function syncQuotes() {
+  fetchQuotesFromServer().then(serverQuotes => {
+    let localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
+    let merged = [...serverQuotes, ...localQuotes];
+    localStorage.setItem("quotes", JSON.stringify(merged));
+    quotes = merged;
+    alert("Quotes synced with server!");
+  });
+}
+
+setInterval(syncQuotes, 30000);
