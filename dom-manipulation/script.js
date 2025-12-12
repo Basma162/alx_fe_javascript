@@ -81,33 +81,46 @@ function importFromJsonFile(event) {
   fileReader.readAsText(file);
 }
 
-function fetchQuotesFromServer() {
-  return fetch("https://jsonplaceholder.typicode.com/posts").then(response => response.json()).then(data => {
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+    const data = await response.json();
     return data.slice(0, 5).map(item => ({ text: item.title, category: "server" }));
-  });
+  } catch (error) {
+    console.error("Error fetching from server:", error);
+    return [];
+  }
 }
 
-// Post quote to server using POST method with Content-Type headers
-function postQuoteToServer(quote) {
-  return fetch("https://jsonplaceholder.typicode.com/posts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(quote)
-  }).then(response => response.json());
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(quote)
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Error posting to server:", error);
+  }
 }
 
-function syncQuotes() {
-  fetchQuotesFromServer().then(serverQuotes => {
+async function syncQuotes() {
+  try {
+    const serverQuotes = await fetchQuotesFromServer();
     let localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
     let merged = [...serverQuotes, ...localQuotes];
     localStorage.setItem("quotes", JSON.stringify(merged));
     quotes = merged;
     populateCategories();
     filterQuotes();
-    notifyUser("Quotes synced from server!");
-  });
+    notifyUser("Quotes synced with server!");
+  } catch (error) {
+    console.error("Sync failed:", error);
+  }
 }
 
 function notifyUser(message) {
